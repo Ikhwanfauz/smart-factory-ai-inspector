@@ -1,0 +1,36 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Jupyter Notebook cache
+.ipynb_checkpoints/
+
+# Dataset files
+data/raw/*
+data/processed/*
+!data/README.md
+
+# Model files
+models/*.pt
+models/*.onnx
+models/*.engine
+models/*.pth
+!models/README.md
+
+# Results
+results/sample_predictions/*
+*.log
+
+# MLflow
+mlruns/
+
+# System files
+.DS_Store
+Thumbs.db
