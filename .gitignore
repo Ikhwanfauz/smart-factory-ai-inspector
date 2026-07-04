@@ -34,3 +34,6 @@ mlruns/
 # System files
 .DS_Store
 Thumbs.db
+
+# YOLO training outputs
+runs/
