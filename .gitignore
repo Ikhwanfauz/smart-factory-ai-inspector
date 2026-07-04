@@ -37,3 +37,9 @@ Thumbs.db
 
 # YOLO training outputs
 runs/
+
+# Model weight files anywhere
+*.pt
+*.pth
+*.onnx
+*.engine
