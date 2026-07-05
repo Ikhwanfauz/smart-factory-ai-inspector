@@ -9,7 +9,8 @@ def run_inference(
     image_path: str,
     model_path: str = "models/yolov8s_neu_det_best.pt",
     output_dir: str = "results/inference_samples",
-    conf: float = 0.25
+    conf: float = 0.25,
+    iou: float = 0.45
 ):
     image_path = Path(image_path)
     model_path = Path(model_path)
@@ -28,6 +29,7 @@ def run_inference(
     results = model.predict(
         source=str(image_path),
         conf=conf,
+        iou=iou,
         imgsz=640,
         save=False,
         verbose=False
@@ -57,6 +59,21 @@ def run_inference(
             ]
         })
 
+    detections = sorted(
+        detections,
+        key=lambda item: item["confidence"],
+        reverse=True
+    )
+
+    class_counts = {}
+
+    for det in detections:
+        class_name = det["class_name"]
+        class_counts[class_name] = class_counts.get(class_name, 0) + 1
+
+    inspection_status = "DEFECT_DETECTED" if len(detections) > 0 else "NO_DEFECT_DETECTED"
+    top_detection = detections[0] if detections else None
+
     annotated_image = result.plot()
 
     output_image_path = output_dir / f"{image_path.stem}_prediction.jpg"
@@ -65,11 +82,19 @@ def run_inference(
     cv2.imwrite(str(output_image_path), annotated_image)
 
     prediction_result = {
+        "project": "Smart Factory AI Inspector",
+        "image_name": image_path.name,
         "image_path": str(image_path),
         "model_path": str(model_path),
         "confidence_threshold": conf,
+        "iou_threshold": iou,
+        "inspection_status": inspection_status,
         "num_detections": len(detections),
-        "detections": detections
+        "class_counts": class_counts,
+        "top_detection": top_detection,
+        "detections": detections,
+        "output_image_path": str(output_image_path),
+        "output_json_path": str(output_json_path)
     }
 
     with open(output_json_path, "w", encoding="utf-8") as f:
@@ -78,11 +103,15 @@ def run_inference(
     print("\n=== Smart Factory AI Inspector Prediction ===")
     print(f"Image: {image_path}")
     print(f"Model: {model_path}")
+    print(f"Confidence threshold: {conf}")
+    print(f"IoU threshold: {iou}")
+    print(f"Inspection status: {inspection_status}")
     print(f"Detections: {len(detections)}")
 
     if len(detections) == 0:
         print("Result: No defect detected.")
     else:
+        print("\nDetected defects:")
         for i, det in enumerate(detections, start=1):
             print(
                 f"{i}. {det['class_name']} | "
@@ -126,11 +155,19 @@ if __name__ == "__main__":
         help="Confidence threshold"
     )
 
+    parser.add_argument(
+        "--iou",
+        type=float,
+        default=0.45,
+        help="IoU threshold for duplicate box suppression"
+    )
+
     args = parser.parse_args()
 
     run_inference(
         image_path=args.image,
         model_path=args.model,
         output_dir=args.output,
-        conf=args.conf
+        conf=args.conf,
+        iou=args.iou
     )
