@@ -1,0 +1,30 @@
+{
+    "image_path": "data\\raw\\NEU-DET\\test\\images\\inclusion_97_jpg.rf.a6dcfde75d5c8ac13e21fafae9158e8f.jpg",
+    "model_path": "models\\yolov8s_neu_det_best.pt",
+    "confidence_threshold": 0.25,
+    "num_detections": 2,
+    "detections": [
+        {
+            "class_id": 1,
+            "class_name": "inclusion",
+            "confidence": 0.7491,
+            "bbox_xyxy": [
+                155.24,
+                25.11,
+                185.54,
+                155.79
+            ]
+        },
+        {
+            "class_id": 1,
+            "class_name": "inclusion",
+            "confidence": 0.2626,
+            "bbox_xyxy": [
+                161.41,
+                22.49,
+                188.83,
+                151.28
+            ]
+        }
+    ]
+}
