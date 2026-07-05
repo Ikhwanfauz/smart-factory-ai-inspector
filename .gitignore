@@ -43,3 +43,6 @@ runs/
 *.pth
 *.onnx
 *.engine
+
+results/api_uploads/
+results/api_predictions/
