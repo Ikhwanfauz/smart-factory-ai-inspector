@@ -92,3 +92,27 @@ Streamlit Dashboard
 
 Inspection Report / Analytics
 
+## Database Logging and Inspection History
+
+The project includes SQLite-based inspection logging.
+
+Every prediction request made through the FastAPI backend is automatically saved into a local SQLite database. Each inspection record stores the timestamp, uploaded image name, inspection status, detected defect class, confidence score, number of detections, and annotated output image path.
+
+The Streamlit dashboard also includes an inspection history table, allowing recent prediction records to be viewed directly from the web interface.
+
+Database-related files:
+
+```text
+database/schema.sql
+database/db.py
+docs/database_logging.md
+
+```markdown
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | API root information |
+| GET | `/health` | Backend and model health check |
+| POST | `/predict` | Upload image and run YOLOv8 defect detection |
+| GET | `/prediction-image/{filename}` | Retrieve annotated prediction image |
+| GET | `/inspections` | Retrieve recent inspection history from SQLite |
+
