@@ -46,3 +46,9 @@ runs/
 
 results/api_uploads/
 results/api_predictions/
+
+# SQLite database runtime files
+database/*.db
+database/*.db-journal
+database/*.sqlite
+database/*.sqlite3

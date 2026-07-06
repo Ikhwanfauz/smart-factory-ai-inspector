@@ -9,13 +9,15 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
 from src.predict import run_inference
-
+from database.db import init_db, save_inspection_result
 
 app = FastAPI(
     title="Smart Factory AI Inspector API",
     description="FastAPI backend for steel surface defect detection using YOLOv8.",
-    version="3A"
+    version="5A"
 )
+
+init_db()
 
 MODEL_PATH = ROOT_DIR / "models" / "yolov8s_neu_det_best.pt"
 UPLOAD_DIR = ROOT_DIR / "results" / "api_uploads"
@@ -90,6 +92,17 @@ async def predict_defect(
         conf=conf,
         iou=iou
     )
+
+        # Save prediction result to SQLite database
+    try:
+        inspection_id = save_inspection_result(
+            result=prediction_result,
+            image_name=file.filename
+        )
+        prediction_result["inspection_id"] = inspection_id
+
+    except Exception as db_error:
+        prediction_result["database_logging_error"] = str(db_error)
 
     return prediction_result
 
