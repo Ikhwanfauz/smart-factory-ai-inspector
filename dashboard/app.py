@@ -5,6 +5,8 @@ from PIL import Image
 from io import BytesIO
 import pandas as pd
 
+API_URL = "http://127.0.0.1:8000"
+
 
 API_BASE_URL = "http://127.0.0.1:8000"
 
@@ -179,3 +181,63 @@ if uploaded_file is not None:
 
 else:
     st.info("Upload an image to start inspection.")
+
+    st.divider()
+
+st.subheader("Inspection History")
+
+history_limit = st.number_input(
+    "Number of recent inspections to show",
+    min_value=5,
+    max_value=100,
+    value=20,
+    step=5
+)
+
+if st.button("Refresh Inspection History"):
+    try:
+        history_response = requests.get(
+            f"{API_URL}/inspections",
+            params={"limit": history_limit},
+            timeout=10
+        )
+
+        if history_response.status_code == 200:
+            history_data = history_response.json()
+            records = history_data.get("records", [])
+
+            if records:
+                history_df = pd.DataFrame(records)
+
+                display_columns = [
+                    "id",
+                    "timestamp",
+                    "image_name",
+                    "inspection_status",
+                    "defect_class",
+                    "confidence",
+                    "num_detections",
+                    "output_image_path"
+                ]
+
+                available_columns = [
+                    column for column in display_columns
+                    if column in history_df.columns
+                ]
+
+                st.dataframe(
+                    history_df[available_columns],
+                    use_container_width=True
+                )
+
+            else:
+                st.info("No inspection history found yet.")
+
+        else:
+            st.error(
+                f"Failed to load inspection history. "
+                f"Status code: {history_response.status_code}"
+            )
+
+    except requests.exceptions.RequestException as error:
+        st.error(f"Could not connect to FastAPI backend: {error}")

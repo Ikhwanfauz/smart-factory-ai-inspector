@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
 from src.predict import run_inference
-from database.db import init_db, save_inspection_result
+from database.db import init_db, save_inspection_result, get_recent_inspections
 
 app = FastAPI(
     title="Smart Factory AI Inspector API",
@@ -30,11 +30,12 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 def root():
     return {
         "project": "Smart Factory AI Inspector",
-        "version": "3A",
+        "version": "5B",
         "message": "FastAPI backend is running.",
         "docs": "/docs",
         "health": "/health",
-        "predict_endpoint": "/predict"
+        "predict_endpoint": "/predict",
+        "inspections_endpoint": "/inspections"
     }
 
 
@@ -46,6 +47,24 @@ def health_check():
         "model_path": str(MODEL_PATH)
     }
 
+@app.get("/inspections")
+def list_inspections(limit: int = 20):
+    """
+    Return recent inspection history from SQLite database.
+    """
+    try:
+        records = get_recent_inspections(limit=limit)
+
+        return {
+            "total_returned": len(records),
+            "records": records
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to read inspection history: {error}"
+        )
 
 @app.post("/predict")
 async def predict_defect(
@@ -93,7 +112,7 @@ async def predict_defect(
         iou=iou
     )
 
-        # Save prediction result to SQLite database
+    # Save prediction result to SQLite database
     try:
         inspection_id = save_inspection_result(
             result=prediction_result,
