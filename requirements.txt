@@ -16,3 +16,4 @@ pydantic
 python-multipart
 easyocr
 mlflow
+requests
