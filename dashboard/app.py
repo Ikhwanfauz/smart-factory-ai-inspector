@@ -579,3 +579,222 @@ else:
             file_name="filtered_inspection_history.csv",
             mime="text/csv"
         )
+
+
+        # =========================
+# Version 7A: Batch Image Inspection
+# =========================
+
+st.divider()
+st.subheader("🖼️ Batch Image Inspection")
+
+st.write(
+    "Upload multiple steel surface images and inspect them one by one using the FastAPI prediction endpoint."
+)
+
+batch_uploaded_files = st.file_uploader(
+    "Upload multiple images for batch inspection",
+    type=["jpg", "jpeg", "png"],
+    accept_multiple_files=True,
+    key="batch_uploaded_files"
+)
+
+col_batch_conf, col_batch_iou = st.columns(2)
+
+with col_batch_conf:
+    batch_confidence = st.slider(
+        "Batch Confidence Threshold",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.25,
+        step=0.05,
+        key="batch_confidence_threshold"
+    )
+
+with col_batch_iou:
+    batch_iou = st.slider(
+        "Batch IoU Threshold",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.30,
+        step=0.05,
+        key="batch_iou_threshold"
+    )
+
+if "batch_results" not in st.session_state:
+    st.session_state["batch_results"] = []
+
+if st.button("Run Batch Inspection"):
+    if not batch_uploaded_files:
+        st.warning("Please upload at least one image for batch inspection.")
+    else:
+        batch_results = []
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        for index, uploaded_file in enumerate(batch_uploaded_files):
+            status_text.write(
+                f"Inspecting image {index + 1} of {len(batch_uploaded_files)}: {uploaded_file.name}"
+            )
+
+            try:
+                image_bytes = uploaded_file.getvalue()
+
+                files = {
+                    "file": (
+                        uploaded_file.name,
+                        image_bytes,
+                        uploaded_file.type or "image/jpeg"
+                    )
+                }
+
+                params = {
+                    "conf": batch_confidence,
+                    "iou": batch_iou
+                }
+
+                response = requests.post(
+                    f"{API_URL}/predict",
+                    files=files,
+                    params=params
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+
+                    detections = result.get("detections", [])
+
+                    if len(detections) > 0:
+                        best_detection = max(
+                            detections,
+                            key=lambda det: det.get("confidence", 0)
+                        )
+
+                        defect_class = (
+                            best_detection.get("class")
+                            or best_detection.get("class_name")
+                            or best_detection.get("defect_class")
+                            or "unknown"
+                        )
+
+                        confidence = best_detection.get("confidence", None)
+
+                    else:
+                        defect_class = result.get("defect_class", None)
+                        confidence = result.get("confidence", None)
+
+                    batch_results.append(
+                        {
+                            "image_name": uploaded_file.name,
+                            "inspection_status": result.get(
+                                "inspection_status",
+                                "UNKNOWN"
+                            ),
+                            "defect_class": defect_class,
+                            "confidence": confidence,
+                            "num_detections": result.get(
+                                "num_detections",
+                                0
+                            ),
+                            "inspection_id": result.get(
+                                "inspection_id",
+                                None
+                            ),
+                            "api_status": "SUCCESS"
+                        }
+                    )
+
+                else:
+                    batch_results.append(
+                        {
+                            "image_name": uploaded_file.name,
+                            "inspection_status": "ERROR",
+                            "defect_class": None,
+                            "confidence": None,
+                            "num_detections": None,
+                            "inspection_id": None,
+                            "api_status": f"FAILED: {response.status_code}"
+                        }
+                    )
+
+            except requests.exceptions.RequestException as e:
+                batch_results.append(
+                    {
+                        "image_name": uploaded_file.name,
+                        "inspection_status": "ERROR",
+                        "defect_class": None,
+                        "confidence": None,
+                        "num_detections": None,
+                        "inspection_id": None,
+                        "api_status": str(e)
+                    }
+                )
+
+            progress_bar.progress((index + 1) / len(batch_uploaded_files))
+
+        st.session_state["batch_results"] = batch_results
+        status_text.write("Batch inspection completed.")
+        st.success(f"Completed batch inspection for {len(batch_results)} images.")
+
+batch_results = st.session_state["batch_results"]
+
+if len(batch_results) > 0:
+    st.markdown("### Batch Inspection Results")
+
+    df_batch = pd.DataFrame(batch_results)
+
+    if "confidence" in df_batch.columns:
+        df_batch["confidence"] = pd.to_numeric(
+            df_batch["confidence"],
+            errors="coerce"
+        )
+
+    st.dataframe(
+        df_batch,
+        use_container_width=True
+    )
+
+    total_batch_images = len(df_batch)
+
+    batch_defect_count = (
+        df_batch["inspection_status"] == "DEFECT_DETECTED"
+    ).sum()
+
+    batch_no_defect_count = (
+        df_batch["inspection_status"] == "NO_DEFECT_DETECTED"
+    ).sum()
+
+    batch_error_count = (
+        df_batch["inspection_status"] == "ERROR"
+    ).sum()
+
+    batch_defect_rate = (
+        batch_defect_count / total_batch_images * 100
+        if total_batch_images > 0
+        else 0
+    )
+
+    col_b1, col_b2, col_b3, col_b4 = st.columns(4)
+
+    with col_b1:
+        st.metric("Batch Images", total_batch_images)
+
+    with col_b2:
+        st.metric("Defect Detected", batch_defect_count)
+
+    with col_b3:
+        st.metric("No Defect Detected", batch_no_defect_count)
+
+    with col_b4:
+        st.metric("Batch Errors", batch_error_count)
+
+    st.metric("Batch Defect Rate", f"{batch_defect_rate:.2f}%")
+
+    batch_csv = df_batch.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Batch Results as CSV",
+        data=batch_csv,
+        file_name="batch_inspection_results.csv",
+        mime="text/csv"
+    )
