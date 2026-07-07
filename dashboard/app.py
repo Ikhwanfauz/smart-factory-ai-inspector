@@ -581,15 +581,15 @@ else:
         )
 
 
-        # =========================
-# Version 7A: Batch Image Inspection
+# =========================
+# Version 7C: Batch Image Inspection Polish
 # =========================
 
 st.divider()
 st.subheader("🖼️ Batch Image Inspection")
 
 st.write(
-    "Upload multiple steel surface images and inspect them one by one using the FastAPI prediction endpoint."
+    "Upload multiple steel surface images and inspect them automatically using the FastAPI prediction endpoint."
 )
 
 batch_uploaded_files = st.file_uploader(
@@ -598,6 +598,13 @@ batch_uploaded_files = st.file_uploader(
     accept_multiple_files=True,
     key="batch_uploaded_files"
 )
+
+if batch_uploaded_files:
+    st.info(f"{len(batch_uploaded_files)} image(s) selected for batch inspection.")
+
+    with st.expander("Selected Images"):
+        selected_image_names = [uploaded_file.name for uploaded_file in batch_uploaded_files]
+        st.write(selected_image_names)
 
 col_batch_conf, col_batch_iou = st.columns(2)
 
@@ -624,7 +631,19 @@ with col_batch_iou:
 if "batch_results" not in st.session_state:
     st.session_state["batch_results"] = []
 
-if st.button("Run Batch Inspection"):
+col_run_batch, col_clear_batch = st.columns(2)
+
+with col_run_batch:
+    run_batch_button = st.button("Run Batch Inspection")
+
+with col_clear_batch:
+    clear_batch_button = st.button("Clear Batch Results")
+
+if clear_batch_button:
+    st.session_state["batch_results"] = []
+    st.success("Batch results cleared.")
+
+if run_batch_button:
     if not batch_uploaded_files:
         st.warning("Please upload at least one image for batch inspection.")
     else:
@@ -632,9 +651,11 @@ if st.button("Run Batch Inspection"):
         progress_bar = st.progress(0)
         status_text = st.empty()
 
+        total_files = len(batch_uploaded_files)
+
         for index, uploaded_file in enumerate(batch_uploaded_files):
             status_text.write(
-                f"Inspecting image {index + 1} of {len(batch_uploaded_files)}: {uploaded_file.name}"
+                f"Inspecting image {index + 1} of {total_files}: {uploaded_file.name}"
             )
 
             try:
@@ -661,7 +682,6 @@ if st.button("Run Batch Inspection"):
 
                 if response.status_code == 200:
                     result = response.json()
-
                     detections = result.get("detections", [])
 
                     if len(detections) > 0:
@@ -674,10 +694,14 @@ if st.button("Run Batch Inspection"):
                             best_detection.get("class")
                             or best_detection.get("class_name")
                             or best_detection.get("defect_class")
+                            or result.get("defect_class")
                             or "unknown"
                         )
 
-                        confidence = best_detection.get("confidence", None)
+                        confidence = best_detection.get(
+                            "confidence",
+                            result.get("confidence", None)
+                        )
 
                     else:
                         defect_class = result.get("defect_class", None)
@@ -730,11 +754,11 @@ if st.button("Run Batch Inspection"):
                     }
                 )
 
-            progress_bar.progress((index + 1) / len(batch_uploaded_files))
+            progress_bar.progress((index + 1) / total_files)
 
         st.session_state["batch_results"] = batch_results
         status_text.write("Batch inspection completed.")
-        st.success(f"Completed batch inspection for {len(batch_results)} images.")
+        st.success(f"Completed batch inspection for {len(batch_results)} image(s).")
 
 batch_results = st.session_state["batch_results"]
 
@@ -749,12 +773,23 @@ if len(batch_results) > 0:
             errors="coerce"
         )
 
-    st.dataframe(
-        df_batch,
-        use_container_width=True
-    )
+    if "num_detections" in df_batch.columns:
+        df_batch["num_detections"] = pd.to_numeric(
+            df_batch["num_detections"],
+            errors="coerce"
+        ).fillna(0).astype(int)
+
+    df_batch["defect_class"] = df_batch["defect_class"].fillna("None")
 
     total_batch_images = len(df_batch)
+
+    batch_success_count = (
+        df_batch["api_status"] == "SUCCESS"
+    ).sum()
+
+    batch_error_count = (
+        df_batch["inspection_status"] == "ERROR"
+    ).sum()
 
     batch_defect_count = (
         df_batch["inspection_status"] == "DEFECT_DETECTED"
@@ -764,15 +799,13 @@ if len(batch_results) > 0:
         df_batch["inspection_status"] == "NO_DEFECT_DETECTED"
     ).sum()
 
-    batch_error_count = (
-        df_batch["inspection_status"] == "ERROR"
-    ).sum()
-
     batch_defect_rate = (
         batch_defect_count / total_batch_images * 100
         if total_batch_images > 0
         else 0
     )
+
+    batch_average_confidence = df_batch["confidence"].mean()
 
     col_b1, col_b2, col_b3, col_b4 = st.columns(4)
 
@@ -780,15 +813,72 @@ if len(batch_results) > 0:
         st.metric("Batch Images", total_batch_images)
 
     with col_b2:
-        st.metric("Defect Detected", batch_defect_count)
+        st.metric("Successful", batch_success_count)
 
     with col_b3:
-        st.metric("No Defect Detected", batch_no_defect_count)
+        st.metric("Defect Detected", batch_defect_count)
 
     with col_b4:
-        st.metric("Batch Errors", batch_error_count)
+        st.metric("Errors", batch_error_count)
 
-    st.metric("Batch Defect Rate", f"{batch_defect_rate:.2f}%")
+    col_b5, col_b6, col_b7 = st.columns(3)
+
+    with col_b5:
+        st.metric("No Defect Detected", batch_no_defect_count)
+
+    with col_b6:
+        st.metric("Batch Defect Rate", f"{batch_defect_rate:.2f}%")
+
+    with col_b7:
+        if pd.isna(batch_average_confidence):
+            st.metric("Avg Confidence", "N/A")
+        else:
+            st.metric("Avg Confidence", f"{batch_average_confidence:.4f}")
+
+    display_columns = [
+        "image_name",
+        "inspection_status",
+        "defect_class",
+        "confidence",
+        "num_detections",
+        "inspection_id",
+        "api_status"
+    ]
+
+    existing_display_columns = [
+        column for column in display_columns if column in df_batch.columns
+    ]
+
+    st.dataframe(
+        df_batch[existing_display_columns],
+        use_container_width=True
+    )
+
+    defect_only_batch = df_batch[
+        df_batch["inspection_status"] == "DEFECT_DETECTED"
+    ].copy()
+
+    if len(defect_only_batch) > 0:
+        st.markdown("### Batch Defect Class Distribution")
+
+        batch_defect_class_counts = (
+            defect_only_batch["defect_class"]
+            .value_counts()
+            .reset_index()
+        )
+
+        batch_defect_class_counts.columns = ["defect_class", "count"]
+
+        st.dataframe(
+            batch_defect_class_counts,
+            use_container_width=True
+        )
+
+        st.bar_chart(
+            batch_defect_class_counts.set_index("defect_class")
+        )
+    else:
+        st.info("No defect class distribution to show because no defects were detected in this batch.")
 
     batch_csv = df_batch.to_csv(index=False).encode("utf-8")
 
