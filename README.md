@@ -116,3 +116,27 @@ docs/database_logging.md
 | GET | `/prediction-image/{filename}` | Retrieve annotated prediction image |
 | GET | `/inspections` | Retrieve recent inspection history from SQLite |
 
+
+
+### Version 6A–6B: Analytics Dashboard, Filtering, and CSV Export
+
+The Streamlit dashboard includes an analytics section based on inspection records stored in SQLite.
+
+Current analytics features:
+
+* total inspection count
+* defect detected count
+* no defect detected count
+* defect rate percentage
+* average confidence
+* most common defect class
+* defect count by class table
+* defect count by class bar chart
+* filtered inspection history
+* CSV export for filtered records
+
+Documentation:
+
+```text
+docs/analytics_dashboard.md
+```
