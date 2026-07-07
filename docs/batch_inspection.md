@@ -6,10 +6,12 @@ The Batch Image Inspection feature extends the Smart Factory AI Inspector dashbo
 
 Before this feature, the dashboard supported single-image inspection only. With batch inspection, users can upload several images, run inspection for each image automatically, view a batch summary, and export the batch results as a CSV file.
 
-This feature was added in:
+This feature was added and improved in:
 
-* Version 7A: Batch Image Inspection
-* Version 7B: Batch Inspection Documentation
+Version 7A: Batch Image Inspection
+Version 7B: Batch Inspection Documentation
+Version 7C: Batch Inspection Polish
+Version 7D: Batch Dashboard Documentation Update
 
 ---
 
@@ -122,13 +124,55 @@ Batch Image Inspection
 Main Streamlit components used:
 
 * multiple image uploader
+* selected image counter
+* selected image list expander
 * confidence threshold slider
 * IoU threshold slider
 * run batch inspection button
+* clear batch results button
 * progress bar
 * batch result table
 * batch summary metrics
+* defect class distribution table
+* defect class distribution bar chart
 * CSV download button
+
+
+
+## Version 7C Dashboard Polish
+
+Version 7C improved the batch inspection section to make it clearer, more user-friendly, and closer to a real dashboard module.
+
+The polished batch dashboard includes:
+
+* selected image counter
+* selected image list inside an expandable section
+* Run Batch Inspection button
+* Clear Batch Results button
+* progress bar during batch processing
+* successful inspection count
+* defect detected count
+* no defect detected count
+* batch error count
+* batch defect rate
+* average confidence
+* cleaner result table
+* defect class distribution table
+* defect class distribution bar chart
+* batch CSV export
+
+These improvements make the batch inspection workflow easier to understand and easier to demonstrate during portfolio review or interview discussion.
+
+The selected image counter helps users confirm how many images will be inspected before running the batch process.
+
+The selected image list helps users verify the uploaded filenames.
+
+The clear batch results button allows users to reset previous batch output before running a new test.
+
+The improved metrics provide a fast summary of the batch quality-control result.
+
+The defect class distribution chart helps users quickly see which defect types appeared in the uploaded batch.
+
 
 ---
 

@@ -142,7 +142,7 @@ docs/analytics_dashboard.md
 ```
 
 
-### Version 7A–7B: Batch Image Inspection
+### Version 7A–7D: Batch Image Inspection
 
 The Streamlit dashboard supports batch image inspection.
 
@@ -154,14 +154,22 @@ Current batch inspection features:
 * repeated FastAPI `/predict` calls
 * confidence threshold control
 * IoU threshold control
+* selected image counter
+* selected image list
 * progress bar during inspection
+* clear batch results button
 * batch result table
+* successful inspection count
 * batch defect count
 * batch no-defect count
 * batch error count
 * batch defect rate
+* average confidence
+* defect class distribution table
+* defect class distribution bar chart
 * CSV export for batch results
 * automatic SQLite logging for each successful prediction
+
 
 Documentation:
 
