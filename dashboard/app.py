@@ -5,6 +5,8 @@ from PIL import Image
 from io import BytesIO
 import pandas as pd
 
+from src.ocr import run_ocr_on_image_bytes
+
 API_URL = "http://127.0.0.1:8000"
 
 
@@ -888,3 +890,110 @@ if len(batch_results) > 0:
         file_name="batch_inspection_results.csv",
         mime="text/csv"
     )
+
+
+# =========================
+# Version 8A: OCR Prototype
+# =========================
+
+st.divider()
+st.subheader("🔤 OCR Prototype - Product / Batch ID Reading")
+
+st.write(
+    "Upload an image with visible text, such as a product label, serial number, or batch number. "
+    "The OCR module will try to extract readable text from the image."
+)
+
+ocr_uploaded_file = st.file_uploader(
+    "Upload image for OCR",
+    type=["jpg", "jpeg", "png"],
+    key="ocr_uploaded_file"
+)
+
+ocr_min_confidence = st.slider(
+    "OCR Minimum Confidence",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.30,
+    step=0.05,
+    key="ocr_min_confidence"
+)
+
+if "ocr_result" not in st.session_state:
+    st.session_state["ocr_result"] = None
+
+if ocr_uploaded_file is not None:
+    st.image(
+        ocr_uploaded_file,
+        caption="OCR input image",
+        use_container_width=True
+    )
+
+if st.button("Run OCR"):
+    if ocr_uploaded_file is None:
+        st.warning("Please upload an image with visible text first.")
+    else:
+        try:
+            with st.spinner("Running OCR... The first run may take longer."):
+                image_bytes = ocr_uploaded_file.getvalue()
+
+                ocr_result = run_ocr_on_image_bytes(
+                    image_bytes=image_bytes,
+                    min_confidence=ocr_min_confidence
+                )
+
+                st.session_state["ocr_result"] = ocr_result
+
+            st.success("OCR completed.")
+
+        except ModuleNotFoundError:
+            st.error(
+                "EasyOCR is not installed. Please run: pip install easyocr"
+            )
+
+        except Exception as e:
+            st.error(f"OCR failed: {e}")
+
+ocr_result = st.session_state["ocr_result"]
+
+if ocr_result is not None:
+    st.markdown("### OCR Result")
+
+    col_ocr1, col_ocr2 = st.columns(2)
+
+    with col_ocr1:
+        st.metric("OCR Status", ocr_result.get("ocr_status", "UNKNOWN"))
+
+    with col_ocr2:
+        st.metric(
+            "Text Regions",
+            ocr_result.get("num_text_regions", 0)
+        )
+
+    extracted_text = ocr_result.get("extracted_text", "")
+
+    st.markdown("### Extracted Text")
+
+    if extracted_text:
+        st.text_area(
+            "OCR Text Output",
+            value=extracted_text,
+            height=120
+        )
+    else:
+        st.info("No text detected above the selected confidence threshold.")
+
+    detections = ocr_result.get("detections", [])
+
+    if len(detections) > 0:
+        st.markdown("### OCR Detection Details")
+
+        df_ocr = pd.DataFrame(detections)
+
+        st.dataframe(
+            df_ocr,
+            use_container_width=True
+        )
+
+    with st.expander("Show Raw OCR JSON"):
+        st.json(ocr_result)
