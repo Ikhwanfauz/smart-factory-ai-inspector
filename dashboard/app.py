@@ -388,3 +388,194 @@ if st.button("Refresh Analytics Dashboard"):
 
     except requests.exceptions.RequestException as e:
         st.error(f"Could not connect to FastAPI backend: {e}")
+
+
+        # =========================
+# Version 6B: Filtering + CSV Export
+# =========================
+
+st.divider()
+st.subheader("🔎 Filtered Inspection History + CSV Export")
+
+st.write(
+    "Filter inspection history records and export the selected results as a CSV file."
+)
+
+filter_limit = st.number_input(
+    "Number of recent inspections to load for filtering",
+    min_value=5,
+    max_value=1000,
+    value=100,
+    step=5,
+    key="filter_limit"
+)
+
+# Store loaded records in session state so filters do not disappear after every click
+if "filter_records" not in st.session_state:
+    st.session_state["filter_records"] = []
+
+if st.button("Load / Refresh Filter Data"):
+    try:
+        filter_response = requests.get(
+            f"{API_URL}/inspections",
+            params={"limit": filter_limit}
+        )
+
+        if filter_response.status_code == 200:
+            filter_data = filter_response.json()
+            st.session_state["filter_records"] = filter_data.get("records", [])
+
+            st.success(
+                f"Loaded {len(st.session_state['filter_records'])} inspection records."
+            )
+
+        else:
+            st.error(
+                f"Failed to load inspection records. "
+                f"Status code: {filter_response.status_code}"
+            )
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not connect to FastAPI backend: {e}")
+
+
+filter_records = st.session_state["filter_records"]
+
+if len(filter_records) == 0:
+    st.info("No filter data loaded yet. Click 'Load / Refresh Filter Data' first.")
+else:
+    df_filter = pd.DataFrame(filter_records)
+
+    # Clean and prepare columns
+    if "timestamp" in df_filter.columns:
+        df_filter["timestamp"] = pd.to_datetime(
+            df_filter["timestamp"],
+            errors="coerce"
+        )
+
+    if "confidence" in df_filter.columns:
+        df_filter["confidence"] = pd.to_numeric(
+            df_filter["confidence"],
+            errors="coerce"
+        )
+
+    if "num_detections" in df_filter.columns:
+        df_filter["num_detections"] = pd.to_numeric(
+            df_filter["num_detections"],
+            errors="coerce"
+        ).fillna(0).astype(int)
+
+    if "inspection_status" in df_filter.columns:
+        df_filter["inspection_status"] = df_filter["inspection_status"].fillna("UNKNOWN")
+
+    if "defect_class" in df_filter.columns:
+        df_filter["defect_class"] = df_filter["defect_class"].fillna("None")
+
+    if "image_name" in df_filter.columns:
+        df_filter["image_name"] = df_filter["image_name"].fillna("Unknown")
+
+    st.markdown("### Filter Options")
+
+    col_status, col_class = st.columns(2)
+
+    with col_status:
+        status_options = ["All"] + sorted(
+            df_filter["inspection_status"].dropna().unique().tolist()
+        )
+
+        selected_status = st.selectbox(
+            "Inspection Status",
+            status_options,
+            key="selected_status_filter"
+        )
+
+    with col_class:
+        defect_class_options = ["All"] + sorted(
+            df_filter["defect_class"].dropna().unique().tolist()
+        )
+
+        selected_defect_class = st.selectbox(
+            "Defect Class",
+            defect_class_options,
+            key="selected_defect_class_filter"
+        )
+
+    confidence_range = st.slider(
+        "Confidence Range",
+        min_value=0.0,
+        max_value=1.0,
+        value=(0.0, 1.0),
+        step=0.01,
+        key="confidence_range_filter"
+    )
+
+    include_missing_confidence = st.checkbox(
+        "Include records without confidence value",
+        value=True,
+        key="include_missing_confidence_filter"
+    )
+
+    image_search = st.text_input(
+        "Search by image name",
+        value="",
+        key="image_name_search_filter"
+    )
+
+    # Apply filters
+    filtered_df = df_filter.copy()
+
+    if selected_status != "All":
+        filtered_df = filtered_df[
+            filtered_df["inspection_status"] == selected_status
+        ]
+
+    if selected_defect_class != "All":
+        filtered_df = filtered_df[
+            filtered_df["defect_class"] == selected_defect_class
+        ]
+
+    min_confidence, max_confidence = confidence_range
+
+    if "confidence" in filtered_df.columns:
+        confidence_mask = (
+            (filtered_df["confidence"] >= min_confidence)
+            & (filtered_df["confidence"] <= max_confidence)
+        )
+
+        if include_missing_confidence:
+            confidence_mask = confidence_mask | filtered_df["confidence"].isna()
+
+        filtered_df = filtered_df[confidence_mask]
+
+    if image_search.strip() != "":
+        filtered_df = filtered_df[
+            filtered_df["image_name"]
+            .str.contains(image_search.strip(), case=False, na=False)
+        ]
+
+    st.markdown("### Filtered Results")
+
+    col_total, col_filtered = st.columns(2)
+
+    with col_total:
+        st.metric("Loaded Records", len(df_filter))
+
+    with col_filtered:
+        st.metric("Filtered Records", len(filtered_df))
+
+    if len(filtered_df) == 0:
+        st.warning("No records match the selected filters.")
+    else:
+        st.dataframe(
+            filtered_df,
+            use_container_width=True
+        )
+
+        csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label="Download Filtered Results as CSV",
+            data=csv_data,
+            file_name="filtered_inspection_history.csv",
+            mime="text/csv"
+        )
