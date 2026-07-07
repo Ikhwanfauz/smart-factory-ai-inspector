@@ -140,3 +140,32 @@ Documentation:
 ```text
 docs/analytics_dashboard.md
 ```
+
+
+### Version 7A–7B: Batch Image Inspection
+
+The Streamlit dashboard supports batch image inspection.
+
+Users can upload multiple steel surface images, run inspection for each image through the FastAPI `/predict` endpoint, view batch-level summary metrics, and download the batch result as a CSV file.
+
+Current batch inspection features:
+
+* multiple image upload
+* repeated FastAPI `/predict` calls
+* confidence threshold control
+* IoU threshold control
+* progress bar during inspection
+* batch result table
+* batch defect count
+* batch no-defect count
+* batch error count
+* batch defect rate
+* CSV export for batch results
+* automatic SQLite logging for each successful prediction
+
+Documentation:
+
+```text
+docs/batch_inspection.md
+```
+
