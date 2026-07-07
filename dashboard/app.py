@@ -241,3 +241,150 @@ if st.button("Refresh Inspection History"):
 
     except requests.exceptions.RequestException as error:
         st.error(f"Could not connect to FastAPI backend: {error}")
+
+        # =========================
+# Version 6A: Analytics Dashboard
+# =========================
+
+st.divider()
+st.subheader("📊 Analytics Dashboard")
+
+st.write(
+    "This section summarizes recent inspection history from the SQLite database."
+)
+
+analytics_limit = st.number_input(
+    "Number of recent inspections for analytics",
+    min_value=5,
+    max_value=500,
+    value=100,
+    step=5,
+    key="analytics_limit"
+)
+
+if st.button("Refresh Analytics Dashboard"):
+    try:
+        analytics_response = requests.get(
+            f"{API_URL}/inspections",
+            params={"limit": analytics_limit}
+        )
+
+        if analytics_response.status_code == 200:
+            analytics_data = analytics_response.json()
+            records = analytics_data.get("records", [])
+
+            if len(records) == 0:
+                st.info("No inspection records found yet. Run some predictions first.")
+            else:
+                df_analytics = pd.DataFrame(records)
+
+                # Clean numeric columns
+                if "confidence" in df_analytics.columns:
+                    df_analytics["confidence"] = pd.to_numeric(
+                        df_analytics["confidence"],
+                        errors="coerce"
+                    )
+
+                if "num_detections" in df_analytics.columns:
+                    df_analytics["num_detections"] = pd.to_numeric(
+                        df_analytics["num_detections"],
+                        errors="coerce"
+                    ).fillna(0).astype(int)
+
+                # Basic metrics
+                total_inspections = len(df_analytics)
+
+                defect_detected_count = (
+                    df_analytics["inspection_status"] == "DEFECT_DETECTED"
+                ).sum()
+
+                no_defect_detected_count = (
+                    df_analytics["inspection_status"] == "NO_DEFECT_DETECTED"
+                ).sum()
+
+                defect_rate = (
+                    defect_detected_count / total_inspections * 100
+                    if total_inspections > 0
+                    else 0
+                )
+
+                average_confidence = df_analytics["confidence"].mean()
+
+                # Defect-only dataframe
+                defect_df = df_analytics[
+                    df_analytics["inspection_status"] == "DEFECT_DETECTED"
+                ].copy()
+
+                if len(defect_df) > 0:
+                    defect_df["defect_class"] = defect_df["defect_class"].fillna("unknown")
+
+                    defect_count_by_class = (
+                        defect_df["defect_class"]
+                        .value_counts()
+                        .reset_index()
+                    )
+
+                    defect_count_by_class.columns = ["defect_class", "count"]
+
+                    most_common_defect = defect_count_by_class.iloc[0]["defect_class"]
+                else:
+                    defect_count_by_class = pd.DataFrame(
+                        columns=["defect_class", "count"]
+                    )
+                    most_common_defect = "None"
+
+                # Display metrics
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric("Total Inspections", total_inspections)
+
+                with col2:
+                    st.metric("Defect Detected", defect_detected_count)
+
+                with col3:
+                    st.metric("No Defect Detected", no_defect_detected_count)
+
+                col4, col5, col6 = st.columns(3)
+
+                with col4:
+                    st.metric("Defect Rate", f"{defect_rate:.2f}%")
+
+                with col5:
+                    if pd.isna(average_confidence):
+                        st.metric("Average Confidence", "N/A")
+                    else:
+                        st.metric("Average Confidence", f"{average_confidence:.4f}")
+
+                with col6:
+                    st.metric("Most Common Defect", most_common_defect)
+
+                # Defect class table and chart
+                st.markdown("### Defect Count by Class")
+
+                if len(defect_count_by_class) == 0:
+                    st.info("No defect classes found yet.")
+                else:
+                    st.dataframe(
+                        defect_count_by_class,
+                        use_container_width=True
+                    )
+
+                    chart_data = defect_count_by_class.set_index("defect_class")
+                    st.bar_chart(chart_data)
+
+                # Optional raw analytics data
+                with st.expander("Show Raw Analytics Data"):
+                    st.dataframe(
+                        df_analytics,
+                        use_container_width=True
+                    )
+
+        else:
+            st.error(
+                f"Failed to load analytics data. "
+                f"Status code: {analytics_response.status_code}"
+            )
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not connect to FastAPI backend: {e}")
