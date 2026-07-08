@@ -271,15 +271,18 @@ if st.button("Refresh Inspection History"):
                 history_df = pd.DataFrame(records)
 
                 display_columns = [
-                    "id",
-                    "timestamp",
-                    "image_name",
-                    "inspection_status",
-                    "defect_class",
-                    "confidence",
-                    "num_detections",
-                    "output_image_path"
-                ]
+    "id",
+    "timestamp",
+    "image_name",
+    "inspection_status",
+    "defect_class",
+    "confidence",
+    "num_detections",
+    "ocr_status",
+    "ocr_text",
+    "ocr_num_text_regions",
+    "output_image_path"
+]
 
                 available_columns = [
                     column for column in display_columns
