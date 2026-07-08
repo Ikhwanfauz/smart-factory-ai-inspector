@@ -34,7 +34,13 @@ def check_api_health():
         return None
 
 
-def run_prediction(uploaded_file, conf, iou):
+def run_prediction(
+    uploaded_file,
+    conf,
+    iou,
+    enable_ocr=False,
+    ocr_min_confidence=0.30
+):
     files = {
         "file": (
             uploaded_file.name,
@@ -45,14 +51,16 @@ def run_prediction(uploaded_file, conf, iou):
 
     params = {
         "conf": conf,
-        "iou": iou
+        "iou": iou,
+        "enable_ocr": enable_ocr,
+        "ocr_min_confidence": ocr_min_confidence
     }
 
     response = requests.post(
         f"{API_BASE_URL}/predict",
         files=files,
         params=params,
-        timeout=60
+        timeout=120
     )
 
     response.raise_for_status()
@@ -115,6 +123,21 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png", "bmp", "webp"]
 )
 
+enable_ocr_for_prediction = st.checkbox(
+    "Run OCR and save text with inspection",
+    value=False,
+    key="enable_ocr_for_prediction"
+)
+
+ocr_min_confidence_for_prediction = st.slider(
+    "OCR Confidence Threshold",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.30,
+    step=0.05,
+    key="ocr_min_confidence_for_prediction"
+)
+
 
 if uploaded_file is not None:
     col1, col2 = st.columns(2)
@@ -130,7 +153,13 @@ if uploaded_file is not None:
         if st.button("Run Inspection", type="primary"):
             with st.spinner("Running defect detection..."):
                 try:
-                    result = run_prediction(uploaded_file, conf, iou)
+                    result = run_prediction(
+                        uploaded_file,
+                        conf,
+                        iou,
+                        enable_ocr=enable_ocr_for_prediction,
+                        ocr_min_confidence=ocr_min_confidence_for_prediction
+                    )
 
                     status = result.get("inspection_status", "UNKNOWN")
                     num_detections = result.get("num_detections", 0)
@@ -177,6 +206,36 @@ if uploaded_file is not None:
                     with st.expander("Raw JSON Response"):
                         st.json(result)
 
+                    if "ocr_result" in result:
+                        st.write("### Saved OCR Result")
+
+                        saved_ocr_result = result["ocr_result"]
+
+                        ocr_col1, ocr_col2 = st.columns(2)
+
+                        with ocr_col1:
+                            st.metric(
+                                "OCR Status",
+                                saved_ocr_result.get("ocr_status", "UNKNOWN")
+                            )
+
+                        with ocr_col2:
+                            st.metric(
+                                "Text Regions",
+                                saved_ocr_result.get("num_text_regions", 0)
+                            )
+
+                        saved_ocr_text = saved_ocr_result.get("extracted_text", "")
+
+                        if saved_ocr_text:
+                            st.text_area(
+                                "Saved OCR Text",
+                                value=saved_ocr_text,
+                                height=100
+                            )
+                        else:
+                            st.info("No OCR text was detected for this inspection.")
+
                 except requests.exceptions.RequestException as e:
                     st.error("Prediction request failed.")
                     st.code(str(e))
@@ -184,7 +243,7 @@ if uploaded_file is not None:
 else:
     st.info("Upload an image to start inspection.")
 
-    st.divider()
+st.divider()
 
 st.subheader("Inspection History")
 
@@ -909,6 +968,9 @@ ocr_uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"],
     key="ocr_uploaded_file"
 )
+
+
+
 
 ocr_min_confidence = st.slider(
     "OCR Minimum Confidence",

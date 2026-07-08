@@ -20,10 +20,23 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def add_column_if_missing(cursor, table_name, column_name, column_definition):
+    """
+    Add a column to an existing SQLite table only if the column does not exist.
+    This keeps old local database files compatible with new versions.
+    """
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    existing_columns = [row[1] for row in cursor.fetchall()]
+
+    if column_name not in existing_columns:
+        cursor.execute(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+        )
 
 def init_db():
     """
     Create database and inspections table if they do not exist.
+    Also adds missing OCR columns for older database files.
     """
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -32,7 +45,37 @@ def init_db():
 
     conn = get_connection()
     cursor = conn.cursor()
+
     cursor.executescript(schema)
+
+    add_column_if_missing(
+        cursor,
+        "inspections",
+        "ocr_status",
+        "TEXT"
+    )
+
+    add_column_if_missing(
+        cursor,
+        "inspections",
+        "ocr_text",
+        "TEXT"
+    )
+
+    add_column_if_missing(
+        cursor,
+        "inspections",
+        "ocr_num_text_regions",
+        "INTEGER"
+    )
+
+    add_column_if_missing(
+        cursor,
+        "inspections",
+        "raw_ocr_json",
+        "TEXT"
+    )
+
     conn.commit()
     conn.close()
 
@@ -55,10 +98,20 @@ def _get_best_detection(result: dict):
     return best_detection
 
 
-def save_inspection_result(result: dict, image_name: str = None):
+def save_inspection_result(result, image_name, ocr_result=None):
     """
     Save one inspection result into SQLite database.
     """
+    ocr_status = None
+    ocr_text = None
+    ocr_num_text_regions = None
+    raw_ocr_json = None
+
+    if ocr_result is not None:
+        ocr_status = ocr_result.get("ocr_status")
+        ocr_text = ocr_result.get("extracted_text")
+        ocr_num_text_regions = ocr_result.get("num_text_regions")
+        raw_ocr_json = json.dumps(ocr_result)
 
     init_db()
 
@@ -109,32 +162,40 @@ def save_inspection_result(result: dict, image_name: str = None):
     cursor = conn.cursor()
 
     cursor.execute(
-        """
-        INSERT INTO inspections (
-            timestamp,
-            image_name,
-            inspection_status,
-            defect_class,
-            confidence,
-            num_detections,
-            output_image_path,
-            json_path,
-            raw_result_json
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            timestamp,
-            final_image_name,
-            inspection_status,
-            defect_class,
-            confidence,
-            num_detections,
-            output_image_path,
-            json_path,
-            raw_result_json,
-        ),
+    """
+    INSERT INTO inspections (
+        timestamp,
+        image_name,
+        inspection_status,
+        defect_class,
+        confidence,
+        num_detections,
+        output_image_path,
+        json_path,
+        raw_result_json,
+        ocr_status,
+        ocr_text,
+        ocr_num_text_regions,
+        raw_ocr_json
     )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+    (
+        timestamp,
+        final_image_name,
+        inspection_status,
+        defect_class,
+        confidence,
+        num_detections,
+        output_image_path,
+        json_path,
+        raw_result_json,
+        ocr_status,
+        ocr_text,
+        ocr_num_text_regions,
+        raw_ocr_json
+    ),
+)
 
     conn.commit()
     inspection_id = cursor.lastrowid
@@ -156,16 +217,19 @@ def get_recent_inspections(limit: int = 20):
     cursor.execute(
         """
         SELECT
-            id,
-            timestamp,
-            image_name,
-            inspection_status,
-            defect_class,
-            confidence,
-            num_detections,
-            output_image_path,
-            json_path
-        FROM inspections
+    id,
+    timestamp,
+    image_name,
+    inspection_status,
+    defect_class,
+    confidence,
+    num_detections,
+    output_image_path,
+    json_path,
+    ocr_status,
+    ocr_text,
+    ocr_num_text_regions
+FROM inspections
         ORDER BY id DESC
         LIMIT ?
         """,

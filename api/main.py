@@ -8,6 +8,7 @@ import uuid
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from src.ocr import run_ocr_on_image_bytes
 from src.predict import run_inference
 from database.db import init_db, save_inspection_result, get_recent_inspections
 
@@ -70,7 +71,9 @@ def list_inspections(limit: int = 20):
 async def predict_defect(
     file: UploadFile = File(...),
     conf: float = 0.25,
-    iou: float = 0.30
+    iou: float = 0.30,
+    enable_ocr: bool = False,
+    ocr_min_confidence: float = 0.30
 ):
     if not MODEL_PATH.exists():
         raise HTTPException(
@@ -112,12 +115,36 @@ async def predict_defect(
         iou=iou
     )
 
+    ocr_result = None
+
+    if enable_ocr:
+        try:
+            ocr_result = run_ocr_on_image_bytes(
+                image_bytes=file_bytes,
+                min_confidence=ocr_min_confidence
+            )
+
+            prediction_result["ocr_result"] = ocr_result
+
+        except Exception as e:
+            ocr_result = {
+                "ocr_status": "OCR_ERROR",
+                "num_text_regions": 0,
+                "extracted_text": "",
+                "detections": [],
+                "error": str(e),
+            }
+
+            prediction_result["ocr_result"] = ocr_result
+
     # Save prediction result to SQLite database
     try:
         inspection_id = save_inspection_result(
             result=prediction_result,
-            image_name=file.filename
+            image_name=file.filename,
+            ocr_result=ocr_result
         )
+
         prediction_result["inspection_id"] = inspection_id
 
     except Exception as db_error:

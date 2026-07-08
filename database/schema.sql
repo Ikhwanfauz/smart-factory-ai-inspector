@@ -8,5 +8,9 @@ CREATE TABLE IF NOT EXISTS inspections (
     num_detections INTEGER NOT NULL,
     output_image_path TEXT,
     json_path TEXT,
-    raw_result_json TEXT
+    raw_result_json TEXT,
+    ocr_status TEXT,
+    ocr_text TEXT,
+    ocr_num_text_regions INTEGER,
+    raw_ocr_json TEXT
 );
