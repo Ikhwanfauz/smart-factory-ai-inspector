@@ -177,3 +177,29 @@ Documentation:
 docs/batch_inspection.md
 ```
 
+### Version 8A–8D: OCR Integration
+
+The project includes OCR support for reading visible text such as product IDs, batch numbers, serial numbers, or labels.
+
+OCR features:
+
+- standalone OCR prototype in Streamlit
+- optional OCR during main inspection
+- OCR result returned by FastAPI `/predict`
+- OCR result saved into SQLite
+- OCR status shown in inspection history
+- OCR text shown in inspection history
+- OCR text region count shown in inspection history
+
+OCR database fields:
+
+- `ocr_status`
+- `ocr_text`
+- `ocr_num_text_regions`
+- `raw_ocr_json`
+
+Documentation:
+
+```text
+docs/ocr_integration.md
+
