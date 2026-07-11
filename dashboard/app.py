@@ -1062,3 +1062,119 @@ if ocr_result is not None:
 
     with st.expander("Show Raw OCR JSON"):
         st.json(ocr_result)
+
+
+# ============================================================
+# MODEL PERFORMANCE DASHBOARD
+# ============================================================
+
+st.divider()
+st.header("📈 Model Performance Dashboard")
+
+st.write(
+    """
+    This section summarizes the evaluation performance of the current
+    YOLOv8s steel surface defect detection model.
+
+    The model was trained for 50 epochs using the NEU-DET dataset and
+    evaluated on the dedicated test dataset.
+    """
+)
+
+st.subheader("Current Production Model")
+
+st.code("models/yolov8s_neu_det_best.pt", language="text")
+
+performance_col1, performance_col2, performance_col3, performance_col4 = st.columns(4)
+
+with performance_col1:
+    st.metric(
+        label="Precision",
+        value="0.4802",
+        help="The proportion of predicted defect detections that were correct."
+    )
+
+with performance_col2:
+    st.metric(
+        label="Recall",
+        value="0.5725",
+        help="The proportion of actual defects that the model successfully detected."
+    )
+
+with performance_col3:
+    st.metric(
+        label="mAP@50",
+        value="0.5931",
+        help="Mean Average Precision calculated using an IoU threshold of 0.50."
+    )
+
+with performance_col4:
+    st.metric(
+        label="mAP@50–95",
+        value="0.3032",
+        help="Mean Average Precision averaged across IoU thresholds from 0.50 to 0.95."
+    )
+
+st.subheader("Evaluation Results")
+
+model_performance_data = {
+    "Metric": [
+        "Precision",
+        "Recall",
+        "mAP@50",
+        "mAP@50–95"
+    ],
+    "Score": [
+        0.4801818699198428,
+        0.5725307719081977,
+        0.5931250558972471,
+        0.30323180922386844
+    ],
+    "Description": [
+        "Accuracy of the model's predicted defect detections.",
+        "Ability of the model to find actual steel surface defects.",
+        "Detection performance at an IoU threshold of 0.50.",
+        "Stricter detection performance averaged from IoU 0.50 to 0.95."
+    ]
+}
+
+model_performance_df = pd.DataFrame(model_performance_data)
+
+st.dataframe(
+    model_performance_df,
+    use_container_width=True,
+    hide_index=True
+)
+
+st.subheader("Performance Score Chart")
+
+performance_chart_df = model_performance_df.set_index("Metric")[["Score"]]
+
+st.bar_chart(performance_chart_df)
+
+st.subheader("Model Performance Interpretation")
+
+st.markdown(
+    """
+    - **Precision: 48.02%** — approximately 48% of the model's predicted
+      defect detections were correct.
+    - **Recall: 57.25%** — the model detected approximately 57% of the
+      actual defects in the test dataset.
+    - **mAP@50: 59.31%** — the model achieved moderate detection performance
+      when evaluated at an IoU threshold of 0.50.
+    - **mAP@50–95: 30.32%** — performance decreases under stricter bounding-box
+      localization requirements.
+    """
+)
+
+st.info(
+    """
+    The YOLOv8s model is currently used because it provided the strongest
+    available balance between defect-detection performance, inference speed,
+    and practical deployment requirements for this project.
+    """
+)
+
+st.caption(
+    "Dataset: NEU-DET | Model: YOLOv8s | Training epochs: 50 | Test images: 180"
+)
