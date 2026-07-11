@@ -1,4 +1,4 @@
-\# Smart Factory AI Inspector
+# Smart Factory AI Inspector
 
 
 
@@ -6,7 +6,7 @@ An end-to-end AI inspection system for manufacturing quality control using compu
 
 
 
-\## Project Overview
+## Project Overview
 
 
 
@@ -18,7 +18,7 @@ The project is designed as a practical AI/ML engineering portfolio project. It f
 
 
 
-\## Key Features
+## Key Features
 
 
 
@@ -38,7 +38,7 @@ The project is designed as a practical AI/ML engineering portfolio project. It f
 
 
 
-\## Planned Tech Stack
+## Planned Tech Stack
 
 
 
@@ -64,33 +64,71 @@ The project is designed as a practical AI/ML engineering portfolio project. It f
 
 
 
-\## System Architecture
+## System Architecture
 
+The Smart Factory AI Inspector combines computer vision, OCR, API development, database logging, analytics, and an interactive dashboard in one end-to-end inspection workflow.
 
+```mermaid
+flowchart TD
+    A[User uploads steel surface image] --> B[Streamlit Dashboard]
 
-```text
+    B --> C[FastAPI POST /predict]
 
-Image / Video Upload
+    C --> D[YOLOv8s Defect Detection]
 
-&#x20;       ↓
+    C --> E{OCR enabled?}
 
-FastAPI Backend
+    E -->|Yes| F[EasyOCR Product or Batch ID Reading]
+    E -->|No| G[Skip OCR]
 
-&#x20;       ↓
+    D --> H[Generate Detection Results]
+    F --> H
+    G --> H
 
-Defect Detection Model + OCR
+    H --> I[Annotated Prediction Image]
+    H --> J[JSON Inspection Result]
 
-&#x20;       ↓
+    I --> K[SQLite Inspection Logging]
+    J --> K
 
-SQLite Database
+    K --> L[Inspection History]
+    K --> M[Analytics Dashboard]
+    K --> N[Filtering and CSV Export]
 
-&#x20;       ↓
+    B --> O[Batch Image Inspection]
+    O --> C
 
-Streamlit Dashboard
+    P[Model Evaluation Results] --> Q[Model Performance Dashboard]
 
-&#x20;       ↓
+    L --> B
+    M --> B
+    N --> B
+    Q --> B
+```
 
-Inspection Report / Analytics
+### Main Components
+
+| Component                   | Responsibility                                               |
+| --------------------------- | ------------------------------------------------------------ |
+| YOLOv8s                     | Detects and classifies steel surface defects                 |
+| EasyOCR                     | Reads optional product, batch, or identification text        |
+| FastAPI                     | Provides the prediction and inspection-history API           |
+| Streamlit                   | Provides the interactive inspection dashboard                |
+| SQLite                      | Stores YOLO and OCR inspection results                       |
+| Analytics                   | Summarizes defect rates, confidence, and class distributions |
+| Batch Inspection            | Processes multiple images in one workflow                    |
+| Model Performance Dashboard | Displays precision, recall, and mAP results                  |
+
+### Inspection Workflow
+
+1. A user uploads one or multiple steel surface images.
+2. Streamlit sends each image to the FastAPI prediction endpoint.
+3. YOLOv8s performs steel surface defect detection.
+4. EasyOCR runs when OCR is enabled.
+5. The API returns the inspection status, detections, OCR result, and annotated image.
+6. The complete result is saved into SQLite.
+7. Streamlit displays the result, history, analytics, filters, and CSV exports.
+
 
 ## Database Logging and Inspection History
 
@@ -106,15 +144,18 @@ Database-related files:
 database/schema.sql
 database/db.py
 docs/database_logging.md
+```
 
-```markdown
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/` | API root information |
-| GET | `/health` | Backend and model health check |
-| POST | `/predict` | Upload image and run YOLOv8 defect detection |
-| GET | `/prediction-image/{filename}` | Retrieve annotated prediction image |
-| GET | `/inspections` | Retrieve recent inspection history from SQLite |
+### API Endpoints
+
+| Method | Endpoint                       | Description                                    |
+| ------ | ------------------------------ | ---------------------------------------------- |
+| GET    | `/`                            | API root information                           |
+| GET    | `/health`                      | Backend and model health check                 |
+| POST   | `/predict`                     | Upload image and run YOLOv8 defect detection   |
+| GET    | `/prediction-image/{filename}` | Retrieve annotated prediction image            |
+| GET    | `/inspections`                 | Retrieve recent inspection history from SQLite |
+
 
 
 
@@ -202,7 +243,7 @@ Documentation:
 
 ```text
 docs/ocr_integration.md
-
+```
 
 
 ---
@@ -263,5 +304,7 @@ models/yolov8s_neu_det_best.pt
 The model was trained for 50 epochs using the NEU-DET steel surface defect dataset.
 
 Version 9 demonstrates knowledge of model evaluation, performance interpretation, and deployment—not only application development.
+
+
 
 
