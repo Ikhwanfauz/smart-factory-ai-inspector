@@ -120,6 +120,59 @@ http://localhost:8501
 
 Both FastAPI and Streamlit must be running for dashboard predictions to work.
 
+## Running with Docker
+
+The complete FastAPI and Streamlit application can also run through Docker Compose.
+
+### Prerequisites
+
+- Docker Desktop
+- Docker Compose
+- WSL 2 on Windows
+- Local YOLOv8s model file
+
+The required model must exist at:
+
+```text
+models/yolov8s_neu_det_best.pt
+```
+
+Model weights are excluded from Git and must be placed manually in the `models` directory after cloning the repository.
+
+### Start the Application
+
+```bat
+docker compose up --build
+```
+
+Open:
+
+```text
+FastAPI documentation: http://127.0.0.1:8000/docs
+FastAPI health check:  http://127.0.0.1:8000/health
+Streamlit dashboard:   http://localhost:8501
+```
+
+The Streamlit container communicates internally with the FastAPI container using:
+
+```text
+http://api:8000
+```
+
+### Stop the Application
+
+Press `Ctrl + C`, then run:
+
+```bat
+docker compose down
+```
+
+Detailed Docker instructions and troubleshooting are available in:
+
+```text
+docs/docker_deployment.md
+```
+
 
 
 ## System Architecture
