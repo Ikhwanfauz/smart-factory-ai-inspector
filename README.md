@@ -20,47 +20,105 @@ The project is designed as a practical AI/ML engineering portfolio project. It f
 
 ## Key Features
 
+* Single-image steel surface defect inspection
+* YOLOv8s defect detection across six NEU-DET classes
+* Adjustable confidence and IoU thresholds
+* Annotated prediction-image generation
+* Raw JSON prediction results
+* FastAPI inference backend
+* Streamlit inspection dashboard
+* SQLite inspection logging
+* Inspection-history display
+* Analytics and defect-class visualization
+* Inspection filtering and CSV export
+* Batch image inspection
+* Optional EasyOCR product or batch ID reading
+* OCR result storage in SQLite
+* Model performance dashboard
+* Precision, recall, mAP@50, and mAP@50–95 reporting
 
+## Tech Stack
 
-\- Upload image or video for inspection
+| Component            | Technology          |
+| -------------------- | ------------------- |
+| Programming Language | Python              |
+| Defect Detection     | Ultralytics YOLOv8s |
+| OCR                  | EasyOCR             |
+| Backend API          | FastAPI             |
+| Dashboard            | Streamlit           |
+| Database             | SQLite              |
+| Data Processing      | Pandas              |
+| Model Framework      | PyTorch             |
+| Version Control      | Git and GitHub      |
 
-\- Detect surface defects using a computer vision model
+## Dataset and Model
 
-\- Extract product label or serial number using OCR
+The project uses the NEU-DET Steel Surface Defect Dataset in YOLO format.
 
-\- Store inspection results in a database
+The dataset contains six defect classes:
 
-\- Display inspection history and defect statistics in a dashboard
+1. Crazing
+2. Inclusion
+3. Patches
+4. Pitted surface
+5. Rolled-in scale
+6. Scratches
 
-\- Provide API endpoints for model inference
+Dataset distribution:
 
-\- Prepare the system for Docker-based deployment
+| Split      | Images |
+| ---------- | -----: |
+| Training   |  1,259 |
+| Validation |    360 |
+| Test       |    180 |
+| Total      |  1,799 |
 
+The current deployed model is a YOLOv8s model trained for 50 epochs.
 
+```text
+models/yolov8s_neu_det_best.pt
+```
 
-## Planned Tech Stack
+Model weight files are excluded from Git because they are large runtime artifacts.
 
+## Running the Project Locally
 
+### 1. Activate the environment
 
-| Component | Tool |
+```bat
+conda activate SFAI
+cd /d C:\Users\ikhwa\smart-factory-ai-inspector
+```
 
-|---|---|
+### 2. Start the FastAPI backend
 
-| Defect Detection | YOLOv8 / YOLO11 |
+```bat
+python -m uvicorn api.main:app --reload
+```
 
-| OCR | EasyOCR / PaddleOCR |
+FastAPI documentation:
 
-| Backend API | FastAPI |
+```text
+http://127.0.0.1:8000/docs
+```
 
-| Dashboard | Streamlit |
+### 3. Start the Streamlit dashboard
 
-| Database | SQLite |
+Open another terminal and run:
 
-| Experiment Tracking | MLflow |
+```bat
+conda activate SFAI
+cd /d C:\Users\ikhwa\smart-factory-ai-inspector
+python -m streamlit run dashboard/app.py
+```
 
-| Deployment | Docker |
+Streamlit dashboard:
 
-| Version Control | GitHub |
+```text
+http://localhost:8501
+```
+
+Both FastAPI and Streamlit must be running for dashboard predictions to work.
 
 
 
@@ -128,6 +186,54 @@ flowchart TD
 5. The API returns the inspection status, detections, OCR result, and annotated image.
 6. The complete result is saved into SQLite.
 7. Streamlit displays the result, history, analytics, filters, and CSV exports.
+
+
+## Project Demo
+
+The following screenshots demonstrate the main features of the Smart Factory AI Inspector.
+
+### Dashboard Overview
+
+The Streamlit dashboard provides controls for uploading images, configuring confidence and IoU thresholds, enabling OCR, and running inspections.
+
+![Smart Factory AI Inspector dashboard overview](docs/images/dashboard_overview.png)
+
+### Single-Image Defect Inspection
+
+The system detects steel surface defects, displays the inspection status, identifies the defect class, reports confidence scores, and generates an annotated prediction image.
+
+![Single-image defect inspection result](docs/images/single_inspection_result.png)
+
+### Inspection Analytics
+
+Inspection records stored in SQLite are used to calculate total inspections, defect counts, defect rate, average confidence, and defect-class distribution.
+
+![Inspection analytics dashboard](docs/images/analytics_dashboard.png)
+
+### Batch Image Inspection
+
+Multiple images can be inspected in one workflow. The dashboard displays batch progress, summary metrics, inspection results, and defect-class distribution.
+
+![Batch image inspection](docs/images/batch_inspection.png)
+
+### OCR Product and Batch ID Reading
+
+EasyOCR can optionally extract visible text such as product IDs, batch numbers, serial numbers, or labels from uploaded images.
+
+![OCR product and batch ID result](docs/images/ocr_result.png)
+
+### Model Performance Dashboard
+
+The dashboard presents the evaluation performance of the deployed YOLOv8s model, including precision, recall, mAP@50, and mAP@50–95.
+
+![YOLOv8s model performance dashboard](docs/images/model_performance.png)
+
+### FastAPI Backend
+
+FastAPI provides endpoints for health checks, YOLOv8 predictions, annotated prediction images, OCR processing, and inspection-history retrieval.
+
+![FastAPI interactive API documentation](docs/images/fastapi_docs.png)
+
 
 
 ## Database Logging and Inspection History
