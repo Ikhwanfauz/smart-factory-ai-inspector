@@ -203,3 +203,65 @@ Documentation:
 ```text
 docs/ocr_integration.md
 
+
+
+---
+
+## Version 9 — Model Performance Dashboard
+
+Version 9 adds model evaluation visibility to the Smart Factory AI Inspector.
+
+The project now shows not only inspection results, but also the machine learning performance of the deployed YOLOv8s model.
+
+### Version 9A — Model Performance Dashboard
+
+The Streamlit dashboard now includes:
+
+* Precision
+* Recall
+* mAP@50
+* mAP@50–95
+* Evaluation result table
+* Performance bar chart
+* Metric explanations
+* Model information
+* Dataset information
+
+### Version 9B — Model Performance Documentation
+
+Detailed model evaluation documentation is available at:
+
+```text
+docs/model_performance.md
+```
+
+The documentation explains:
+
+* NEU-DET dataset distribution
+* YOLOv8s model configuration
+* Evaluation metrics
+* Performance interpretation
+* Reasons for selecting YOLOv8s
+* Current model limitations
+* Possible future improvements
+
+### Current YOLOv8s Test Performance
+
+| Metric    |  Score |
+| --------- | -----: |
+| Precision | 0.4802 |
+| Recall    | 0.5725 |
+| mAP@50    | 0.5931 |
+| mAP@50–95 | 0.3032 |
+
+The current production model is:
+
+```text
+models/yolov8s_neu_det_best.pt
+```
+
+The model was trained for 50 epochs using the NEU-DET steel surface defect dataset.
+
+Version 9 demonstrates knowledge of model evaluation, performance interpretation, and deployment—not only application development.
+
+
