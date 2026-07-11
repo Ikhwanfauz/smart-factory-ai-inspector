@@ -1,0 +1,63 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smart-factory-ai-api:latest
+    container_name: sfai-api
+
+    command:
+      - python
+      - -m
+      - uvicorn
+      - api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./models:/app/models:ro
+      - ./database:/app/database
+      - ./results/api_uploads:/app/results/api_uploads
+      - ./results/api_predictions:/app/results/api_predictions
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smart-factory-ai-dashboard:latest
+    container_name: sfai-dashboard
+
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - dashboard/app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+
+    ports:
+      - "8501:8501"
+
+    environment:
+      API_BASE_URL: http://api:8000
+
+    depends_on:
+      api:
+        condition: service_healthy

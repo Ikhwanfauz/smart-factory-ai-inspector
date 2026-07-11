@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 from pathlib import Path
@@ -7,10 +8,12 @@ import pandas as pd
 
 from src.ocr import run_ocr_on_image_bytes
 
-API_URL = "http://127.0.0.1:8000"
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    "http://127.0.0.1:8000"
+).rstrip("/")
 
-
-API_BASE_URL = "http://127.0.0.1:8000"
+API_URL = API_BASE_URL
 
 
 st.set_page_config(
