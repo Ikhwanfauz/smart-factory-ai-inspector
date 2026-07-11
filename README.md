@@ -17,6 +17,28 @@ Manual visual inspection in manufacturing can be slow, inconsistent, and difficu
 The project is designed as a practical AI/ML engineering portfolio project. It focuses not only on model training, but also on deployment, inference API, database logging, dashboard analytics, and professional documentation.
 
 
+## Project Status
+
+**Version:** 1.0.0  
+**Status:** Portfolio release completed  
+**Deployment:** FastAPI and Streamlit through Docker Compose
+
+The complete end-to-end workflow is implemented:
+
+```text
+Dataset
+→ Training
+→ Evaluation
+→ Inference
+→ FastAPI
+→ EasyOCR
+→ SQLite
+→ Streamlit
+→ Analytics
+→ Batch Inspection
+→ Docker Deployment
+
+
 
 ## Key Features
 
